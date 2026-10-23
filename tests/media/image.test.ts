@@ -10,3 +10,15 @@ test('readTakenAt falls back when no EXIF', async () => {
   const f = new File(['not an image'], 'a.jpg', { type: 'image/jpeg' });
   expect(await readTakenAt(f, 123)).toBe(123);
 });
+
+test('drawFlattened paints white before the photo so transparency is not black in JPEG', async () => {
+  const { drawFlattened } = await import('../../src/media/image');
+  const calls: string[] = [];
+  const ctx = {
+    set fillStyle(v: string) { calls.push('fill:' + v); },
+    fillRect: () => calls.push('fillRect'),
+    drawImage: () => calls.push('drawImage'),
+  } as unknown as CanvasRenderingContext2D;
+  drawFlattened(ctx, {} as CanvasImageSource, 10, 10);
+  expect(calls).toEqual(['fill:#ffffff', 'fillRect', 'drawImage']);
+});

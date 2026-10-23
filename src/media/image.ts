@@ -29,6 +29,13 @@ async function decode(file: Blob): Promise<Source> {
   }
 }
 
+/** JPEG에는 투명이 없어서 그대로 그리면 투명한 부분이 검게 된다. 흰 바탕을 먼저 깐다. */
+export function drawFlattened(ctx: CanvasRenderingContext2D, el: CanvasImageSource, w: number, h: number): void {
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(el, 0, 0, w, h);
+}
+
 /** 긴 변 1600px, JPEG 0.82로 줄인다. */
 export async function shrinkImage(file: Blob): Promise<{ blob: Blob; width: number; height: number }> {
   const src = await decode(file);
@@ -39,7 +46,7 @@ export async function shrinkImage(file: Blob): Promise<{ blob: Blob; width: numb
     canvas.height = height;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new ImageError('이 사진은 열 수 없어요.');
-    ctx.drawImage(src.el, 0, 0, width, height);
+    drawFlattened(ctx, src.el, width, height);
     const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', JPEG_QUALITY));
     if (!blob) throw new ImageError('이 사진은 열 수 없어요.');
     return { blob, width, height };

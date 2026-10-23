@@ -15,6 +15,7 @@ import { renderDay, type DayPhotoView } from './views/day';
 import { SETTINGS_NOTE, settingsInfo } from './views/settings';
 import { renderCalendar } from './views/calendar';
 import { renderCover } from './views/cover';
+import { dismiss, isStandalone, renderOnboarding, shouldShowOnboarding, wasDismissed } from './views/onboarding';
 
 type ViewName = 'cover' | 'cal' | 'day' | 'compose';
 type Dir = 'slide-l' | 'slide-r';
@@ -80,6 +81,13 @@ export class App {
 
   async start(): Promise<void> {
     await this.showCover();
+    if (shouldShowOnboarding(isStandalone(), wasDismissed())) {
+      const el = document.createElement('section');
+      el.id = 'onboarding';
+      el.className = 'view';
+      renderOnboarding(el);
+      this.root.appendChild(el);
+    }
   }
 
   protected show(name: ViewName): void {
@@ -370,6 +378,10 @@ export class App {
         return this.editComment(el.dataset.id!);
       case 'add-here':
         return this.startAdd(this.dayKey);
+      case 'onboard-ok':
+        dismiss();
+        el.closest('#onboarding')?.remove();
+        return;
       case 'settings':
         return this.openSettings();
       case 'comp-save': {
