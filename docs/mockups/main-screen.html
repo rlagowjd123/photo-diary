@@ -1,0 +1,61 @@
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<style>
+.row{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+.col{display:flex;flex-direction:column;align-items:center;gap:8px}
+.ph{width:230px;height:480px;border-radius:30px;overflow:hidden;position:relative;box-shadow:0 8px 28px rgba(0,0,0,.18);background:#f5f1ea;color:#3a332c;font-family:'Gowun Batang',serif}
+.lbl{font-size:12px;opacity:.7}
+.p1{background:linear-gradient(160deg,#d8c3a5,#8a6f55)}
+.p2{background:linear-gradient(160deg,#b9c4c9,#5f6f78)}
+.p3{background:linear-gradient(160deg,#e6cfc4,#a77d6c)}
+.tap{position:absolute;bottom:26px;width:100%;text-align:center;font-size:9px;letter-spacing:.3em;opacity:.45}
+.cam{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);width:34px;height:34px;border-radius:50%;border:1px solid currentColor;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-weight:200;font-size:18px;opacity:.7}
+/* 1 */
+.m1 .frame{position:absolute;top:70px;left:28px;right:28px;height:250px;background:#fff;padding:8px 8px 34px;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.m1 .frame div{height:100%}
+.m1 .cp{position:absolute;bottom:9px;left:10px;font-size:10px;opacity:.7}
+.m1 .title{position:absolute;top:30px;width:100%;text-align:center;font-size:11px;letter-spacing:.35em;opacity:.6}
+/* 2 */
+.m2 .big{position:absolute;top:120px;width:100%;text-align:center}
+.m2 .n{font-size:84px;line-height:1}
+.m2 .s{font-size:11px;letter-spacing:.3em;opacity:.5;margin-top:6px}
+.m2 .q{position:absolute;top:290px;width:100%;text-align:center;font-size:12px;line-height:1.9;opacity:.75}
+/* 3 */
+.m3 .pol{position:absolute;background:#fff;padding:6px 6px 22px;box-shadow:0 4px 12px rgba(0,0,0,.14)}
+.m3 .pol div{width:100%;height:100%}
+.m3 .t{position:absolute;bottom:100px;width:100%;text-align:center;font-size:18px}
+.m3 .t small{display:block;font-size:10px;opacity:.5;letter-spacing:.2em;margin-top:4px}
+</style>
+
+<h2>메인 화면 — 세 가지 방향 (A 디자인 기준)</h2>
+<p class="subtitle">화면 아무 곳이나 누르면 달력으로 넘어가요. 마음에 드는 걸 눌러주세요.</p>
+
+<div class="options">
+<div class="option" data-choice="1" onclick="toggleSelect(this)"><div class="letter">1</div><div class="content"><h3>오늘의 한 장</h3><p>가장 최근 대표사진 한 장을 폴라로이드처럼. 열 때마다 내 사진이 반겨줌.</p></div></div>
+<div class="option" data-choice="2" onclick="toggleSelect(this)"><div class="letter">2</div><div class="content"><h3>빈 종이 위 오늘 날짜</h3><p>사진 없이 날짜와 짧은 문장만. 가장 조용하고 차분함.</p></div></div>
+<div class="option" data-choice="3" onclick="toggleSelect(this)"><div class="letter">3</div><div class="content"><h3>흩어진 사진들</h3><p>최근 사진 3장이 책상 위에 놓인 것처럼 겹쳐 있음. 기록이 쌓이는 느낌.</p></div></div>
+</div>
+
+<div class="row">
+<div class="col"><div class="ph m1">
+ <div class="title">MY DIARY</div>
+ <div class="frame"><div class="p1"></div><span class="cp">10.07 · 친구들과 집 앞 카페에서.</span></div>
+ <div class="cam">+</div>
+ <div class="tap">TOUCH TO OPEN</div>
+</div><div class="lbl">1 · 오늘의 한 장</div></div>
+
+<div class="col"><div class="ph m2">
+ <div class="big"><div class="n">22</div><div class="s">OCTOBER · THURSDAY</div></div>
+ <div class="q">올해 42일을 남겼어요.</div>
+ <div class="cam">+</div>
+ <div class="tap">TOUCH TO OPEN</div>
+</div><div class="lbl">2 · 빈 종이 위 오늘 날짜</div></div>
+
+<div class="col"><div class="ph m3">
+ <div class="pol" style="top:60px;left:20px;width:110px;height:130px;transform:rotate(-7deg)"><div class="p2"></div></div>
+ <div class="pol" style="top:90px;left:95px;width:110px;height:130px;transform:rotate(6deg)"><div class="p3"></div></div>
+ <div class="pol" style="top:170px;left:50px;width:120px;height:140px;transform:rotate(-2deg)"><div class="p1"></div></div>
+ <div class="t">2026년 10월<small>42 DAYS</small></div>
+ <div class="cam">+</div>
+ <div class="tap">TOUCH TO OPEN</div>
+</div><div class="lbl">3 · 흩어진 사진들</div></div>
+</div>

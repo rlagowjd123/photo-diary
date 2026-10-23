@@ -1,0 +1,118 @@
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+.row{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;margin-bottom:10px}
+.ph{width:230px;height:480px;border-radius:30px;overflow:hidden;position:relative;box-shadow:0 8px 28px rgba(0,0,0,.18);font-size:12px}
+.col{display:flex;flex-direction:column;align-items:center;gap:8px}
+.lbl{font-size:12px;opacity:.7}
+/* photo stand-ins */
+.p1{background:linear-gradient(160deg,#d8c3a5,#8a6f55)}
+.p2{background:linear-gradient(160deg,#b9c4c9,#5f6f78)}
+.p3{background:linear-gradient(160deg,#e6cfc4,#a77d6c)}
+.p4{background:linear-gradient(160deg,#c9cdb4,#6f7458)}
+.p5{background:linear-gradient(160deg,#ede0c8,#b39a6e)}
+
+/* A: 필름 / 종이 */
+.A{background:#f5f1ea;color:#3a332c;font-family:'Gowun Batang',serif}
+.A .hd{padding:26px 18px 14px}
+.A .yr{font-size:10px;letter-spacing:.2em;opacity:.5}
+.A .mo{font-size:26px;margin-top:2px}
+.A .g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:0 12px}
+.A .w{font-size:8px;text-align:center;opacity:.4;padding-bottom:4px;letter-spacing:.1em}
+.A .c{aspect-ratio:3/4;border-radius:2px;font-size:8px;padding:2px 3px;color:#b5aa9c}
+.A .c.f{color:#fff}
+.A .c.t{color:#3a332c;text-decoration:underline}
+.A .ft{position:absolute;bottom:22px;width:100%;text-align:center;font-size:10px;opacity:.4;letter-spacing:.15em}
+.A .dh{padding:24px 20px 10px;border-bottom:1px solid #e3dccf}
+.A .dd{font-size:22px}.A .ds{font-size:10px;opacity:.5;letter-spacing:.15em}
+.A .feed{padding:14px 20px}
+.A .img{height:150px;border-radius:2px}
+.A .tx{font-size:11px;line-height:1.8;margin:8px 0 18px;color:#5a5047}
+.A .add{position:absolute;bottom:18px;right:18px;width:38px;height:38px;border-radius:50%;background:#3a332c;color:#f5f1ea;display:flex;align-items:center;justify-content:center;font-size:20px;font-family:sans-serif;font-weight:200}
+
+/* B: 미니멀 모노 */
+.B{background:#fff;color:#111;font-family:'Noto Sans KR',sans-serif;font-weight:300}
+.B .hd{padding:26px 16px 16px;display:flex;align-items:baseline;gap:8px}
+.B .mo{font-size:34px;font-weight:500;letter-spacing:-.03em}
+.B .yr{font-size:11px;opacity:.4}
+.B .g{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;padding:0 8px}
+.B .w{font-size:8px;text-align:center;opacity:.35;padding-bottom:6px}
+.B .c{aspect-ratio:1;font-size:8px;padding:2px;color:#ccc}
+.B .c.f{color:#fff;font-weight:500}
+.B .c.t{color:#111;font-weight:500}
+.B .c.t::after{content:'';display:block;width:3px;height:3px;border-radius:50%;background:#111;margin:2px auto}
+.B .ft{position:absolute;bottom:22px;width:100%;text-align:center;font-size:10px;opacity:.3}
+.B .dh{padding:24px 16px 12px}
+.B .dd{font-size:28px;font-weight:500;letter-spacing:-.03em}.B .ds{font-size:10px;opacity:.4}
+.B .img{height:170px}
+.B .tx{font-size:11px;line-height:1.75;padding:10px 16px 20px;color:#444}
+.B .add{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);padding:9px 22px;border-radius:20px;background:#111;color:#fff;font-size:11px}
+.badge{position:absolute;top:8px;left:8px;font-size:8px;padding:2px 6px;border-radius:8px;background:rgba(255,255,255,.85);color:#111}
+.rel{position:relative}
+</style>
+
+<h2>디자인 방향 두 가지 + 블로그처럼 내려가는 하루 화면</h2>
+<p class="subtitle">마음에 드는 쪽을 눌러주세요. 섞고 싶으면 그렇게 말해주셔도 돼요.</p>
+
+<div class="options">
+<div class="option" data-choice="a" onclick="toggleSelect(this)">
+ <div class="letter">A</div>
+ <div class="content"><h3>필름 · 종이 감성</h3><p>따뜻한 미색 바탕, 명조체, 세로로 긴 사진 칸. 다이어리 노트 느낌.</p></div>
+</div>
+<div class="option" data-choice="b" onclick="toggleSelect(this)">
+ <div class="letter">B</div>
+ <div class="content"><h3>미니멀 · 모노</h3><p>하얀 바탕, 얇은 고딕체, 사진이 꽉 차는 격자. 사진이 주인공인 느낌.</p></div>
+</div>
+</div>
+
+<h3 style="margin-top:22px">A · 필름 · 종이 감성</h3>
+<div class="row">
+<div class="col"><div class="ph A">
+ <div class="hd"><div class="yr">2026</div><div class="mo">10월</div></div>
+ <div class="g">
+  <div class="w">S</div><div class="w">M</div><div class="w">T</div><div class="w">W</div><div class="w">T</div><div class="w">F</div><div class="w">S</div>
+  <div></div><div></div><div></div><div></div><div class="c">1</div><div class="c f p2">2</div><div class="c">3</div>
+  <div class="c">4</div><div class="c">5</div><div class="c f p4">6</div><div class="c f p1">7</div><div class="c f p3">8</div><div class="c">9</div><div class="c">10</div>
+  <div class="c">11</div><div class="c">12</div><div class="c">13</div><div class="c f p5">14</div><div class="c">15</div><div class="c">16</div><div class="c">17</div>
+  <div class="c">18</div><div class="c">19</div><div class="c">20</div><div class="c">21</div><div class="c t">22</div><div class="c">23</div><div class="c">24</div>
+  <div class="c">25</div><div class="c">26</div><div class="c">27</div><div class="c">28</div><div class="c">29</div><div class="c">30</div><div class="c">31</div>
+ </div>
+ <div class="ft">‹ swipe ›</div>
+</div><div class="lbl">달력</div></div>
+
+<div class="col"><div class="ph A">
+ <div class="dh"><div class="ds">WED · 2026</div><div class="dd">10월 7일</div></div>
+ <div class="feed">
+  <div class="img p1 rel"><span class="badge">대표</span></div>
+  <div class="tx">친구들과 집 앞 카페에서.<br>친구 수진이와 오랜만에.</div>
+  <div class="img p3"></div>
+  <div class="tx">케이크가 너무 예뻐서 먹기 아까웠다.</div>
+  <div class="img p2"></div>
+ </div>
+ <div class="add">+</div>
+</div><div class="lbl">하루 화면 (아래로 스크롤)</div></div>
+</div>
+
+<h3 style="margin-top:22px">B · 미니멀 · 모노</h3>
+<div class="row">
+<div class="col"><div class="ph B">
+ <div class="hd"><div class="mo">10</div><div class="yr">October 2026</div></div>
+ <div class="g">
+  <div class="w">S</div><div class="w">M</div><div class="w">T</div><div class="w">W</div><div class="w">T</div><div class="w">F</div><div class="w">S</div>
+  <div></div><div></div><div></div><div></div><div class="c">1</div><div class="c f p2">2</div><div class="c">3</div>
+  <div class="c">4</div><div class="c">5</div><div class="c f p4">6</div><div class="c f p1">7</div><div class="c f p3">8</div><div class="c">9</div><div class="c">10</div>
+  <div class="c">11</div><div class="c">12</div><div class="c">13</div><div class="c f p5">14</div><div class="c">15</div><div class="c">16</div><div class="c">17</div>
+  <div class="c">18</div><div class="c">19</div><div class="c">20</div><div class="c">21</div><div class="c t">22</div><div class="c">23</div><div class="c">24</div>
+  <div class="c">25</div><div class="c">26</div><div class="c">27</div><div class="c">28</div><div class="c">29</div><div class="c">30</div><div class="c">31</div>
+ </div>
+ <div class="ft">← →</div>
+</div><div class="lbl">달력</div></div>
+
+<div class="col"><div class="ph B">
+ <div class="dh"><div class="dd">10.07</div><div class="ds">Wednesday</div></div>
+ <div class="img p1 rel"><span class="badge">대표</span></div>
+ <div class="tx">친구들과 집 앞 카페에서.<br>친구 수진이와 오랜만에.</div>
+ <div class="img p3"></div>
+ <div class="tx">케이크가 너무 예뻐서 먹기 아까웠다.</div>
+ <div class="add">+ 사진 추가</div>
+</div><div class="lbl">하루 화면 (아래로 스크롤)</div></div>
+</div>

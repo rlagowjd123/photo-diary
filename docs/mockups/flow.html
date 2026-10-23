@@ -1,0 +1,98 @@
+<style>
+.flow{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+.phone{width:230px;height:470px;border:2px solid #444;border-radius:28px;padding:14px 10px;background:#fff;color:#222;position:relative;overflow:hidden;font-size:12px}
+.cap{text-align:center;font-weight:600;margin:8px 0 2px}
+.capd{text-align:center;font-size:12px;opacity:.7;max-width:230px}
+.col{display:flex;flex-direction:column;align-items:center}
+.mh{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:15px;margin:6px 4px 10px}
+.mh span{opacity:.35;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.wd{text-align:center;font-size:9px;opacity:.5}
+.d{aspect-ratio:1;border-radius:5px;background:#f2f2f2;font-size:9px;padding:2px;color:#999}
+.d.p{color:#fff;font-weight:700;text-shadow:0 0 3px #000}
+.d.t{outline:2px solid #ff7a59;color:#ff7a59;font-weight:700}
+.p1{background:linear-gradient(135deg,#c79a6b,#6b4a2f)}
+.p2{background:linear-gradient(135deg,#8fb7d9,#3c6c96)}
+.p3{background:linear-gradient(135deg,#e8a0b4,#9a4c64)}
+.p4{background:linear-gradient(135deg,#9fcf8f,#467a3a)}
+.p5{background:linear-gradient(135deg,#f0cf7a,#a8812a)}
+.swipe{text-align:center;opacity:.45;margin-top:14px;font-size:11px}
+.top{font-weight:700;font-size:14px;margin:6px 4px 14px}
+.plus{height:150px;border:2px dashed #bbb;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:44px;color:#aaa}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fafafa;border-top-left-radius:18px;border-top-right-radius:18px;padding:14px;box-shadow:0 -4px 14px rgba(0,0,0,.15)}
+.sheet div{padding:11px;border-radius:10px;background:#fff;margin-bottom:6px;text-align:center;font-size:13px;border:1px solid #eee}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.big{height:200px;border-radius:12px;margin-bottom:10px}
+.ta{border:1px solid #ddd;border-radius:10px;padding:8px;height:90px;color:#555;line-height:1.5}
+.cnt{text-align:right;font-size:10px;opacity:.5;margin-top:3px}
+.btns{display:flex;gap:6px;margin-top:10px}
+.btns div{flex:1;text-align:center;padding:9px;border-radius:10px;background:#eee}
+.btns .pri{background:#ff7a59;color:#fff;font-weight:700}
+.thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.th{aspect-ratio:1;border-radius:8px;position:relative}
+.star{position:absolute;top:3px;left:3px;background:#ff7a59;color:#fff;font-size:8px;padding:1px 4px;border-radius:6px}
+.addt{aspect-ratio:1;border:2px dashed #ccc;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:22px}
+.memo{margin-top:10px;background:#f6f6f6;border-radius:10px;padding:8px;line-height:1.5;color:#444}
+.pop{position:absolute;left:30px;right:30px;top:170px;background:#fff;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.3);padding:6px}
+.pop div{padding:9px;text-align:center;border-bottom:1px solid #eee}
+.pop div:last-child{border:0;color:#d33}
+</style>
+
+<h2>사진 일기장 — 화면 흐름 시안</h2>
+<p class="subtitle">말씀하신 내용을 그대로 옮겨본 대략적인 와이어프레임이에요. 색 블록은 사진 자리입니다.</p>
+
+<div class="flow">
+
+<div class="col">
+<div class="phone">
+ <div class="mh"><span>‹ 9월</span>2026년 10월<span>11월 ›</span></div>
+ <div class="grid">
+  <div class="wd">일</div><div class="wd">월</div><div class="wd">화</div><div class="wd">수</div><div class="wd">목</div><div class="wd">금</div><div class="wd">토</div>
+  <div></div><div></div><div></div><div></div>
+  <div class="d">1</div><div class="d p p2">2</div><div class="d">3</div>
+  <div class="d">4</div><div class="d">5</div><div class="d p p4">6</div><div class="d t">7</div><div class="d p p1">8</div><div class="d">9</div><div class="d">10</div>
+  <div class="d">11</div><div class="d">12</div><div class="d">13</div><div class="d p p3">14</div><div class="d">15</div><div class="d">16</div><div class="d p p5">17</div>
+  <div class="d">18</div><div class="d">19</div><div class="d">20</div><div class="d">21</div><div class="d">22</div><div class="d">23</div><div class="d">24</div>
+  <div class="d">25</div><div class="d">26</div><div class="d">27</div><div class="d">28</div><div class="d">29</div><div class="d">30</div><div class="d">31</div>
+ </div>
+ <div class="swipe">← 옆으로 밀어서 지난달 / 다음달 →</div>
+</div>
+<div class="cap">① 달력</div><div class="capd">기록한 날은 대표사진으로 채워지고, 나머지는 빈칸</div>
+</div>
+
+<div class="col">
+<div class="phone">
+ <div class="top">‹ 10월 7일 (수)</div>
+ <div class="plus">+</div>
+ <div class="dim"></div>
+ <div class="sheet"><div>📷 카메라로 찍기</div><div>🖼 갤러리에서 고르기</div><div style="opacity:.6">취소</div></div>
+</div>
+<div class="cap">② 빈 날짜 → + 누르기</div><div class="capd">카메라 또는 갤러리 선택</div>
+</div>
+
+<div class="col">
+<div class="phone">
+ <div class="top">‹ 10월 7일 (수)</div>
+ <div class="big p1"></div>
+ <div class="ta">친구들과 집 앞 카페에서.<br>친구 수진이와</div>
+ <div class="cnt">2 / 10줄</div>
+ <div class="btns"><div>멘트 없이 저장</div><div class="pri">저장</div></div>
+</div>
+<div class="cap">③ 찍자마자 멘트 쓰기</div><div class="capd">10줄까지, 비워도 저장 가능</div>
+</div>
+
+<div class="col">
+<div class="phone">
+ <div class="top">‹ 10월 7일 (수)</div>
+ <div class="thumbs">
+  <div class="th p1"><span class="star">대표</span></div><div class="th p3"></div><div class="th p2"></div>
+  <div class="addt">+</div>
+ </div>
+ <div class="memo">친구들과 집 앞 카페에서.<br>친구 수진이와</div>
+ <div class="dim"></div>
+ <div class="pop"><div>⭐ 대표사진으로 지정</div><div>삭제</div></div>
+</div>
+<div class="cap">④ 기록된 날 보기</div><div class="capd">최대 5장 · 사진을 꾹 누르면 대표사진 지정</div>
+</div>
+
+</div>
