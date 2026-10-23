@@ -26,6 +26,9 @@ export class App {
   calM = 0;
   dayKey: DayKey = '';
   addKey: DayKey = '';
+  /** 화면을 그릴 때마다 증가. 늦게 끝난 이전 요청이 최신 화면을 덮지 못하게 한다. */
+  private calSeq = 0;
+  private daySeq = 0;
   readonly camInput: HTMLInputElement;
   readonly galInput: HTMLInputElement;
   readonly restoreInput: HTMLInputElement;
@@ -120,6 +123,7 @@ export class App {
   async showCalendar(year: number, month0: number, dir?: Dir, keepCover = false): Promise<void> {
     this.calY = year;
     this.calM = month0;
+    const seq = ++this.calSeq;
     const from = toDayKey(new Date(year, month0, 1));
     const to = toDayKey(new Date(year, month0 + 1, 0));
     const covers: Record<DayKey, string> = {};
@@ -128,9 +132,11 @@ export class App {
       if (id) covers[d.key] = await photoUrl(this.store, id);
     }
     const n = this.now();
+    const meta = await this.store.getMeta();
+    if (seq !== this.calSeq) return;
     renderCalendar(this.views.cal, {
       year, month0, today: this.today, covers, dir,
-      showNudge: needsBackupNudge(await this.store.getMeta(), n.getTime()),
+      showNudge: needsBackupNudge(meta, n.getTime()),
       canGoNext: year * 12 + month0 < n.getFullYear() * 12 + n.getMonth(),
     });
     if (keepCover) this.views.cal.hidden = false;
@@ -148,6 +154,7 @@ export class App {
     const keepScroll = !dir && key === this.dayKey && !this.views.day.hidden;
     const scroll = this.views.day.scrollTop;
     this.dayKey = key;
+    const seq = ++this.daySeq;
     const day = await this.store.getDay(key);
     const coverId = day ? effectiveCoverId(day) : null;
     const photos: DayPhotoView[] = [];
@@ -156,7 +163,9 @@ export class App {
       if (!p) continue;
       photos.push({ id, url: await photoUrl(this.store, id), comment: p.comment, time: formatTime(p.takenAt), isCover: id === coverId });
     }
-    renderDay(this.views.day, { key, today: this.today, photos, yearAgo: await this.yearAgo(key), dir });
+    const yearAgo = await this.yearAgo(key);
+    if (seq !== this.daySeq) return;
+    renderDay(this.views.day, { key, today: this.today, photos, yearAgo, dir });
     this.show('day');
     this.views.day.scrollTop = keepScroll ? scroll : 0;
   }
