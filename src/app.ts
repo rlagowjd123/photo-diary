@@ -12,7 +12,7 @@ import { forgetAllUrls, forgetUrl, photoUrl } from './ui/urls';
 import { openViewer } from './ui/viewer';
 import { readCompose, renderCompose } from './views/compose';
 import { renderDay, type DayPhotoView } from './views/day';
-import { SETTINGS_NOTE, settingsInfo } from './views/settings';
+import { restoreWarning, SETTINGS_NOTE, settingsInfo } from './views/settings';
 import { renderCalendar } from './views/calendar';
 import { renderCover } from './views/cover';
 import { dismiss, isStandalone, renderOnboarding, shouldShowOnboarding, wasDismissed } from './views/onboarding';
@@ -292,8 +292,13 @@ export class App {
     } catch (e) {
       return toast(e instanceof BackupError ? e.message : '불러오지 못했어요.');
     }
-    if (!(await confirmSheet('백업 불러오기', `${data.year}년 기록을 이 백업 내용으로 바꿔요.`, '불러오기'))) return;
-    await restoreBackup(this.store, data);
+    const warning = restoreWarning(data.year, data.days.map((d) => d.key), await this.store.allDayKeys());
+    if (!(await confirmSheet('백업 불러오기', warning, '불러오기'))) return;
+    try {
+      await restoreBackup(this.store, data);
+    } catch {
+      return toast('불러오지 못했어요. 기존 기록은 그대로예요.');
+    }
     forgetAllUrls();
     toast('불러왔어요.');
     await this.showCalendar(this.calY || this.now().getFullYear(), this.calY ? this.calM : this.now().getMonth());
