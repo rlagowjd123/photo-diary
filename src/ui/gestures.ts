@@ -39,12 +39,17 @@ export function onLongPress(root: HTMLElement, selector: string, cb: (el: HTMLEl
       cb(el);
     }, LONG_PRESS_MS);
   });
+  // 손가락이 10px 넘게 움직였을 때만 취소한다 (가만히 누를 때의 작은 떨림은 무시).
+  const movedFar = (cx: number, cy: number) => Math.hypot(cx - x, cy - y) > 10;
   root.addEventListener('pointermove', (e) => {
-    if (Math.hypot(e.clientX - x, e.clientY - y) > 10) cancel();
+    if (movedFar(e.clientX, e.clientY)) cancel();
   });
   root.addEventListener('pointerup', cancel);
   root.addEventListener('pointercancel', cancel);
-  root.addEventListener('touchmove', cancel, { passive: true });
+  root.addEventListener('touchmove', (e) => {
+    const t = e.touches[0];
+    if (!t || movedFar(t.clientX, t.clientY)) cancel();
+  }, { passive: true });
   root.addEventListener('click', (e) => {
     if (fired && (e.target as HTMLElement).closest(selector)) {
       fired = false;
