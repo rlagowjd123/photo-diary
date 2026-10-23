@@ -1,0 +1,499 @@
+<title>사진 일기</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap">
+<style>
+/* Layout: one phone-width column; each screen is a full-height paper sheet stacked in #app. Single warm-paper look chosen by the user. */
+:root{
+  --paper:#f5f1ea; --paper-deep:#ece6dc; --ink:#3a332c; --ink-soft:#6b6157;
+  --faint:#b3a899; --line:#e1d9cc; --scrim:rgba(40,34,28,.38);
+  --serif:'Gowun Batang','AppleMyungjo','Nanum Myeongjo','Batang',serif;
+  color-scheme:light;
+}
+html{height:100%;box-sizing:border-box}
+*,*::before,*::after{box-sizing:border-box}
+body{height:100%;background:var(--paper);color:var(--ink);font-family:var(--serif);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-tap-highlight-color:transparent;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible,textarea:focus-visible{outline:1px dashed var(--ink-soft);outline-offset:3px}
+#app{position:relative;height:100%;max-width:440px;margin:0 auto;perspective:1800px}
+.view{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;background:var(--paper);-webkit-overflow-scrolling:touch}
+.lbl{font-size:10px;letter-spacing:.24em;color:var(--ink-soft)}
+
+/* ---------- main ---------- */
+#main{z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;user-select:none}
+#main .brand{position:absolute;top:28px;left:0;right:0}
+#main .num{font-size:clamp(96px,30vw,128px);line-height:1;letter-spacing:-.02em}
+#main .when{margin-top:10px}
+#main .rule{width:22px;height:1px;background:var(--ink);opacity:.35;margin:34px 0 22px}
+#main .count{font-size:14px;line-height:1.9;color:var(--ink-soft)}
+#main .foot{position:absolute;bottom:28px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:18px}
+.quiet-plus{width:30px;height:30px;border-radius:50%;border:1px solid var(--ink);opacity:.5;display:grid;place-items:center;font-family:system-ui,sans-serif;font-weight:200;font-size:18px;line-height:1;transition:opacity .2s}
+.quiet-plus:hover{opacity:.85}
+#main .note{font-size:10px;color:var(--faint)}
+#main.turn{transform-origin:left center;animation:turn .9s cubic-bezier(.6,.02,.35,1) forwards;backface-visibility:hidden;box-shadow:6px 0 22px rgba(40,34,28,.18)}
+#main.turn::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(58,51,44,0),rgba(58,51,44,.28));opacity:0;animation:shade .9s forwards;pointer-events:none}
+@keyframes turn{to{transform:rotateY(-112deg)}}
+@keyframes shade{to{opacity:1}}
+
+/* ---------- calendar ---------- */
+#cal{z-index:1;padding-block:26px 90px}
+.cal-top{display:flex;justify-content:space-between;align-items:flex-start;padding:0 2px}
+.cal-top .settings{position:relative;font-size:11px;letter-spacing:.12em;color:var(--ink-soft);padding:4px 0}
+.dot{position:absolute;top:2px;right:-8px;width:5px;height:5px;border-radius:50%;background:var(--ink)}
+.mo-row{display:flex;align-items:baseline;gap:14px;margin:4px 2px 18px}
+.mo-row h1{font-size:30px;font-weight:400;margin:0;min-width:3.2em}
+.arrow{font-size:16px;color:var(--ink-soft);padding:4px 6px}
+.arrow:disabled{opacity:.2;cursor:default}
+.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.wd{font-size:9px;text-align:center;letter-spacing:.14em;color:var(--faint);padding-bottom:4px}
+.cell{position:relative;aspect-ratio:3/4;border-radius:2px;overflow:hidden;text-align:left;font-size:10px;color:var(--faint);padding:3px 4px;background:transparent}
+.cell img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cell span{position:relative}
+.cell.has span{color:#fff;text-shadow:0 0 4px rgba(0,0,0,.55)}
+.cell.today span{color:var(--ink);border-bottom:1px solid var(--ink)}
+.cell.has.today span{color:#fff;border-color:#fff}
+.cell.future{opacity:.45;cursor:default}
+.cal-hint{text-align:center;margin-top:22px;font-size:10px;letter-spacing:.2em;color:var(--faint)}
+.corner-plus{position:fixed;z-index:2;bottom:calc(24px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%)}
+#cal .corner-plus{position:absolute;bottom:26px}
+
+/* ---------- day ---------- */
+#day{z-index:1;padding-block:22px 110px}
+.day-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--ink-soft)}
+.day-title{padding:18px 2px 14px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.day-title h1{font-size:26px;font-weight:400;margin:4px 0 0}
+.feed{display:flex;flex-direction:column;gap:30px}
+.shot{position:relative;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:pointer;transition:transform .15s}
+.shot.pressed{transform:scale(.98)}
+.shot img{display:block;width:100%;height:auto;border-radius:2px;pointer-events:none}
+.badge{position:absolute;top:10px;left:10px;font-size:10px;padding:3px 8px;border-radius:10px;background:rgba(245,241,234,.9);color:var(--ink);letter-spacing:.08em}
+.cap{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;margin-top:10px;align-items:baseline}
+.cap time{font-size:10px;color:var(--faint);letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.cm{margin:0;font-size:14px;line-height:1.85;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;color:var(--ink);text-align:left;cursor:text}
+.cm.empty{color:var(--faint);font-size:12px}
+.empty-add{width:100%;aspect-ratio:4/3;border:1px dashed var(--faint);border-radius:2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--ink-soft)}
+.empty-add b{font-family:system-ui,sans-serif;font-weight:200;font-size:40px;line-height:1}
+.empty-add small{font-size:12px}
+.fab{position:absolute;right:4px;bottom:28px}
+.fab-wrap{position:sticky;bottom:24px;display:flex;justify-content:flex-end;margin-top:-20px;pointer-events:none}
+.fab-wrap .quiet-plus{pointer-events:auto;background:var(--paper);opacity:.7;width:38px;height:38px;font-size:22px}
+.yago{margin-top:46px;padding-top:18px;border-top:1px solid var(--line);display:flex;gap:14px;align-items:center;text-align:left;width:100%}
+.yago img{width:54px;height:72px;object-fit:cover;border-radius:2px;flex:none}
+.yago p{margin:6px 0 0;font-size:13px;color:var(--ink-soft);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.slide-l{animation:slideL .35s ease}
+.slide-r{animation:slideR .35s ease}
+@keyframes slideL{from{opacity:0;transform:translateX(26px)}}
+@keyframes slideR{from{opacity:0;transform:translateX(-26px)}}
+
+/* ---------- compose ---------- */
+#compose{z-index:4;padding-block:22px 40px}
+.comp-list{display:flex;flex-direction:column;gap:26px;margin-top:20px}
+.comp-list img{width:100%;max-height:52vh;object-fit:contain;background:var(--paper-deep);border-radius:2px;display:block}
+textarea{width:100%;margin-top:10px;border:1px solid var(--line);background:#fbf9f5;border-radius:4px;padding:10px 12px;font:inherit;font-size:14px;line-height:1.8;color:var(--ink);resize:none;min-height:88px}
+textarea::placeholder{color:var(--faint)}
+.counter{text-align:right;font-size:10px;color:var(--faint);margin-top:4px;font-variant-numeric:tabular-nums}
+.btn-ink{display:block;width:100%;padding:13px;border-radius:4px;background:var(--ink);color:var(--paper);font-size:14px;letter-spacing:.1em;margin-top:28px}
+
+/* ---------- sheets & overlays ---------- */
+.scrim{position:fixed;inset:0;z-index:20;background:var(--scrim);animation:fade .2s}
+.sheet{position:fixed;z-index:21;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:440px;background:var(--paper);border-radius:14px 14px 0 0;
+  padding:18px max(18px,env(safe-area-inset-left,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-right,0px));animation:up .25s ease}
+.sheet h2{font-size:12px;font-weight:400;letter-spacing:.14em;color:var(--ink-soft);text-align:center;margin:0 0 12px}
+.sheet .item{display:block;width:100%;padding:14px;text-align:center;font-size:15px;border-top:1px solid var(--line)}
+.sheet .item:first-of-type{border-top:0}
+.sheet .item.danger{color:#9a3b2c}
+.sheet .item.dim{color:var(--ink-soft);font-size:13px}
+.sheet .item:disabled{opacity:.3}
+.sheet p{font-size:13px;color:var(--ink-soft);line-height:1.7;margin:0 0 10px;text-align:center}
+.row2{display:flex;gap:8px;margin-top:14px}
+.row2 button{flex:1;padding:12px;border-radius:4px;border:1px solid var(--line);font-size:14px}
+.row2 .pri{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.viewer{position:fixed;inset:0;z-index:30;background:#1c1916;display:grid;place-items:center;animation:fade .2s;cursor:zoom-out}
+.viewer img{max-width:100%;max-height:100%;object-fit:contain}
+.toast{position:fixed;z-index:40;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:13px;padding:10px 16px;border-radius:20px;max-width:calc(100% - 40px);text-align:center;animation:fade .2s}
+@keyframes fade{from{opacity:0}}
+@keyframes up{from{transform:translate(-50%,100%)}}
+@media (prefers-reduced-motion:reduce){
+  #main.turn{animation:fadeOut .3s forwards}
+  #main.turn::after{display:none}
+  .slide-l,.slide-r,.sheet,.scrim{animation:none}
+  @keyframes fadeOut{to{opacity:0}}
+}
+</style>
+
+<div id="app">
+  <section id="main" class="view" aria-label="표지"></section>
+  <section id="cal" class="view" hidden aria-label="달력"></section>
+  <section id="day" class="view" hidden aria-label="하루"></section>
+  <section id="compose" class="view" hidden aria-label="멘트 쓰기"></section>
+</div>
+<div id="layer"></div>
+<input id="inCam" type="file" accept="image/*" capture="environment" hidden>
+<input id="inGal" type="file" accept="image/*" multiple hidden>
+
+<script>
+(() => {
+const MAX = 5, MAX_LINES = 10, MAX_CHARS = 300;
+const WD_EN = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const MON_EN = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+const pad = n => String(n).padStart(2,'0');
+const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse = k => { const [y,m,d] = k.split('-').map(Number); return new Date(y,m-1,d); };
+const addDays = (k,n) => { const d = parse(k); d.setDate(d.getDate()+n); return keyOf(d); };
+const now = new Date(); const TODAY = keyOf(now);
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let uid = 0;
+
+/* ---------- example photos, drawn locally ---------- */
+const PAL = [
+  ['#dcc8aa','#86684c','rgba(255,242,218,.55)','rgba(70,45,30,.38)'],
+  ['#c3ced2','#5b6c76','rgba(255,255,255,.5)','rgba(30,40,52,.35)'],
+  ['#ecd4c8','#a57a68','rgba(255,236,226,.6)','rgba(90,50,40,.3)'],
+  ['#cfd3b8','#6a7154','rgba(250,250,226,.5)','rgba(40,50,30,.36)'],
+  ['#f0e2c6','#ad9268','rgba(255,248,232,.6)','rgba(90,70,40,.3)'],
+  ['#cbc1d1','#6c5f76','rgba(250,242,255,.5)','rgba(50,40,60,.3)'],
+];
+function rng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function fakePhoto(seed, portrait){
+  const w = portrait ? 360 : 480, h = portrait ? 480 : 360;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'), P = PAL[seed % PAL.length], r = rng(seed*977+13);
+  const lg = g.createLinearGradient(0,0,w*.35,h); lg.addColorStop(0,P[0]); lg.addColorStop(1,P[1]);
+  g.fillStyle = lg; g.fillRect(0,0,w,h);
+  g.fillStyle = P[3]; g.fillRect(0, h*(.58+r()*.14), w, h);
+  for (let i=0;i<6;i++){ const x=r()*w,y=r()*h*.7,R=30+r()*110; const rg=g.createRadialGradient(x,y,0,x,y,R);
+    rg.addColorStop(0,P[2]); rg.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=rg; g.fillRect(0,0,w,h); }
+  for (let i=0;i<2;i++){ g.fillStyle=P[3]; g.beginPath(); g.ellipse(w*(.2+r()*.6),h*(.62+r()*.2),18+r()*40,10+r()*22,0,0,7); g.fill(); }
+  const vg = g.createRadialGradient(w/2,h/2,Math.min(w,h)*.3,w/2,h/2,Math.max(w,h)*.75);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(30,20,10,.35)'); g.fillStyle=vg; g.fillRect(0,0,w,h);
+  const im = g.getImageData(0,0,w,h), d = im.data;
+  for (let i=0;i<d.length;i+=4){ const n=(r()-.5)*22; d[i]+=n; d[i+1]+=n; d[i+2]+=n; }
+  g.putImageData(im,0,0);
+  return c.toDataURL('image/jpeg', .82);
+}
+
+/* ---------- data (examples) ---------- */
+const entries = {}; // key -> {photos:[{id,src,comment,time}], coverId}
+const SAMPLE = [
+  [-1, [['친구들과 집 앞 카페에서.\n친구 수진이와 오랜만에.','14:32',1],['케이크가 너무 예뻐서 먹기 아까웠다.','14:51',1],['','16:05',0]]],
+  [-3, [['퇴근길에 본 하늘.\n오늘은 조금 일찍 나왔다.','18:12',0]]],
+  [-6, [['엄마랑 시장 구경.\n붕어빵 세 개에 이천 원.','11:20',1],['','11:48',1]]],
+  [-9, [['','09:03',1]]],
+  [-13,[['비 오는 날 창가 자리.\n책은 거의 못 읽었다.','15:40',1]]],
+  [-16,[['한강 산책. 바람이 차가워졌다.','17:02',0],['돗자리 펴고 한 시간.','17:30',1]]],
+  [-21,[['새로 산 컵.','21:10',1]]],
+  [-26,[['동생 생일. 미역국 성공!','08:15',1],['','19:44',0],['케이크 초 꽂는 데만 10분.','20:02',1]], 2],
+  [-31,[['','13:13',0]]],
+  [-35,[['오랜만에 혼자 영화.','22:30',1]]],
+  [-40,[['전시회.\n작은 그림이 더 오래 남았다.','16:20',1],['','16:55',1]]],
+  [-47,[['바다! 생각보다 사람이 많았다.','12:40',0],['모래 위에 이름 쓰기.','13:05',1]]],
+  ['ya',[['작년 이맘때, 첫 출근 기념 커피.','08:41',1]]],
+];
+let seed = 3;
+for (const [off, list, coverIdx] of SAMPLE){
+  let k;
+  if (off === 'ya'){ const d = parse(TODAY); d.setFullYear(d.getFullYear()-1); k = keyOf(d); }
+  else k = addDays(TODAY, off);
+  const photos = list.map(([comment, hm, portrait]) => {
+    const [H,M] = hm.split(':').map(Number); const t = parse(k); t.setHours(H,M);
+    return { id: 'p'+(++uid), src: fakePhoto(seed++, !!portrait), comment, time: t.getTime() };
+  });
+  entries[k] = { photos, coverId: coverIdx != null ? photos[coverIdx].id : null };
+}
+let lastBackup = null;
+
+const cover = e => e.photos.find(p => p.id === e.coverId) || e.photos[0];
+const has = k => entries[k] && entries[k].photos.length > 0;
+const findPhoto = id => { for (const k in entries){ const p = entries[k].photos.find(x=>x.id===id); if (p) return {k,p}; } return null; };
+const hm = t => { const d = new Date(t); return pad(d.getHours())+':'+pad(d.getMinutes()); };
+const yearCount = () => Object.keys(entries).filter(k => k.startsWith(TODAY.slice(0,4)) && has(k)).length;
+
+/* ---------- state ---------- */
+let calY = now.getFullYear(), calM = now.getMonth(), dayKey = TODAY, addKey = TODAY, lastAddCam = false;
+const show = id => ['main','cal','day','compose'].forEach(v => $(v).hidden = v !== id);
+
+/* ---------- main ---------- */
+function renderMain(){
+  const n = yearCount();
+  $('main').innerHTML = `
+    <div class="brand lbl">사진 일기</div>
+    <div class="num">${now.getDate()}</div>
+    <div class="when lbl">${MON_EN[now.getMonth()]} · ${WD_EN[now.getDay()]}</div>
+    <div class="rule"></div>
+    <div class="count">${n ? `올해 ${n}일을 남겼어요.` : '오늘 첫 페이지를 남겨보세요.'}</div>
+    <div class="foot">
+      <button class="quiet-plus" data-act="add-today" aria-label="오늘 사진 남기기">+</button>
+      <div class="lbl">TOUCH TO OPEN</div>
+      <div class="note">미리보기 · 예시 기록이 들어 있어요</div>
+    </div>`;
+}
+$('main').addEventListener('click', e => {
+  if (e.target.closest('[data-act]')) return;
+  turnToCalendar();
+});
+function turnToCalendar(){
+  const m = $('main'); if (m.classList.contains('turn')) return;
+  calY = now.getFullYear(); calM = now.getMonth(); renderCal();
+  $('cal').hidden = false;
+  m.classList.add('turn');
+  m.addEventListener('animationend', function done(ev){
+    if (ev.target !== m) return;
+    m.removeEventListener('animationend', done);
+    m.hidden = true; m.classList.remove('turn');
+  });
+}
+
+/* ---------- calendar ---------- */
+function renderCal(dir){
+  const first = new Date(calY, calM, 1).getDay(), days = new Date(calY, calM+1, 0).getDate();
+  const atNow = calY === now.getFullYear() && calM === now.getMonth();
+  const needDot = !lastBackup && Object.keys(entries).some(has);
+  let cells = ['S','M','T','W','T','F','S'].map(w => `<div class="wd">${w}</div>`).join('');
+  for (let i=0;i<first;i++) cells += '<div></div>';
+  for (let d=1; d<=days; d++){
+    const k = `${calY}-${pad(calM+1)}-${pad(d)}`, fut = k > TODAY, e = entries[k];
+    const cls = ['cell', has(k)?'has':'', k===TODAY?'today':'', fut?'future':''].join(' ');
+    cells += `<button class="${cls}" ${fut?'disabled':`data-act="open-day" data-k="${k}"`} aria-label="${calM+1}월 ${d}일${has(k)?', 기록 있음':''}">
+      ${has(k) ? `<img src="${cover(e).src}" alt="">` : ''}<span>${d}</span></button>`;
+  }
+  $('cal').innerHTML = `
+    <div class="cal-top">
+      <button class="lbl" data-act="to-main" aria-label="표지로">${calY}</button>
+      <button class="settings" data-act="settings">설정${needDot?'<i class="dot"></i>':''}</button>
+    </div>
+    <div class="mo-row">
+      <h1>${calM+1}월</h1>
+      <button class="arrow" data-act="prev-m" aria-label="지난달">‹</button>
+      <button class="arrow" data-act="next-m" aria-label="다음달" ${atNow?'disabled':''}>›</button>
+    </div>
+    <div class="grid ${dir||''}">${cells}</div>
+    <div class="cal-hint">‹ 옆으로 밀어 넘기기 ›</div>
+    <button class="quiet-plus corner-plus" data-act="add-today" aria-label="오늘 사진 남기기">+</button>`;
+}
+function moveMonth(n){
+  const t = new Date(calY, calM+n, 1);
+  if (t > new Date(now.getFullYear(), now.getMonth(), 1)) return;
+  calY = t.getFullYear(); calM = t.getMonth(); renderCal(n>0?'slide-l':'slide-r');
+}
+
+/* ---------- day ---------- */
+function renderDay(dir){
+  const d = parse(dayKey), e = entries[dayKey], photos = e ? e.photos : [];
+  const cv = e && photos.length ? cover(e) : null;
+  const ya = (() => { const t = parse(dayKey); t.setFullYear(t.getFullYear()-1); return keyOf(t); })();
+  const feed = photos.length ? photos.map(p => `
+    <figure class="shot" data-id="${p.id}" style="margin:0">
+      <div style="position:relative">
+        <img src="${p.src}" alt="${esc(p.comment || '사진')}">
+        ${p === cv ? '<span class="badge">대표</span>' : ''}
+      </div>
+      <figcaption class="cap">
+        <time>${hm(p.time)}</time>
+        ${p.comment ? `<p class="cm" data-act="edit" data-id="${p.id}">${esc(p.comment)}</p>`
+                    : `<p class="cm empty" data-act="edit" data-id="${p.id}">멘트 달기</p>`}
+      </figcaption>
+    </figure>`).join('')
+    : `<button class="empty-add" data-act="add-here"><b>+</b><small>이날의 첫 사진</small></button>`;
+  $('day').innerHTML = `
+    <div class="day-head">
+      <button data-act="to-cal">‹ 달력</button>
+      <span>
+        <button class="arrow" data-act="prev-d" aria-label="전날">‹</button>
+        <button class="arrow" data-act="next-d" aria-label="다음날" ${dayKey>=TODAY?'disabled':''}>›</button>
+      </span>
+    </div>
+    <div class="${dir||''}">
+      <div class="day-title">
+        <div class="lbl">${WD_EN[d.getDay()]} · ${d.getFullYear()}</div>
+        <h1>${d.getMonth()+1}월 ${d.getDate()}일</h1>
+      </div>
+      <div class="feed">${feed}</div>
+      ${has(ya) ? `<button class="yago" data-act="open-day" data-k="${ya}">
+          <img src="${cover(entries[ya]).src}" alt="">
+          <div><div class="lbl">1년 전 오늘</div><p>${esc(cover(entries[ya]).comment || entries[ya].photos.find(p=>p.comment)?.comment || '사진 ' + entries[ya].photos.length + '장')}</p></div>
+        </button>` : ''}
+    </div>
+    ${photos.length && photos.length < MAX ? `<div class="fab-wrap"><button class="quiet-plus" data-act="add-here" aria-label="사진 더하기">+</button></div>` : ''}`;
+}
+function openDay(k, dir){ dayKey = k; renderDay(dir); show('day'); if (!dir) $('day').scrollTop = 0; }
+function moveDay(n){ const k = addDays(dayKey, n); if (k > TODAY) return; dayKey = k; renderDay(n>0?'slide-l':'slide-r'); $('day').scrollTop = 0; }
+
+/* ---------- sheets ---------- */
+function sheet(html){
+  $('layer').innerHTML = `<div class="scrim" data-act="close"></div><div class="sheet" role="dialog">${html}</div>`;
+}
+const closeLayer = () => { $('layer').innerHTML = ''; };
+function toast(msg){
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2200);
+}
+function openAdd(k){
+  addKey = k; const left = MAX - (entries[k]?.photos.length || 0);
+  if (left <= 0) return toast('하루에 사진은 5장까지예요.');
+  const d = parse(k);
+  sheet(`<h2>${d.getMonth()+1}월 ${d.getDate()}일에 남기기 · ${left}장 더 가능</h2>
+    <button class="item" data-act="pick-cam">카메라로 찍기</button>
+    <button class="item" data-act="pick-gal">갤러리에서 고르기</button>
+    <button class="item dim" data-act="close">취소</button>`);
+}
+function openMenu(id){
+  const f = findPhoto(id); if (!f) return;
+  const e = entries[f.k], i = e.photos.indexOf(f.p), isCover = cover(e) === f.p;
+  sheet(`<h2>사진</h2>
+    <button class="item" data-act="m-cover" data-id="${id}" ${isCover?'disabled':''}>${isCover?'지금 대표사진이에요':'대표사진으로 지정'}</button>
+    <button class="item" data-act="m-save" data-id="${id}">사진 앱에 저장</button>
+    <button class="item" data-act="m-up" data-id="${id}" ${i===0?'disabled':''}>위로 이동</button>
+    <button class="item" data-act="m-down" data-id="${id}" ${i===e.photos.length-1?'disabled':''}>아래로 이동</button>
+    <button class="item danger" data-act="m-del" data-id="${id}">삭제</button>
+    <button class="item dim" data-act="close">닫기</button>`);
+}
+function openEditor(id){
+  const f = findPhoto(id); if (!f) return;
+  sheet(`<h2>멘트</h2>
+    <textarea id="edTxt" rows="4" placeholder="이 순간을 짧게 남겨요. 비워도 괜찮아요.">${esc(f.p.comment)}</textarea>
+    <div class="counter" id="edCnt"></div>
+    <div class="row2"><button data-act="close">취소</button><button class="pri" data-act="ed-save" data-id="${id}">저장</button></div>`);
+  bindLimit($('edTxt'), $('edCnt'));
+  $('edTxt').focus();
+}
+function openSettings(){
+  const y = TODAY.slice(0,4);
+  sheet(`<h2>설정</h2>
+    <p>마지막 백업: ${lastBackup ? lastBackup : '아직 없어요'}<br>사진과 일기는 이 폰 안에만 있어요. 가끔 백업해서 '파일' 앱(iCloud Drive)에 보관하세요.</p>
+    <button class="item" data-act="backup">${y}년 백업하기</button>
+    <button class="item" data-act="restore">백업 불러오기</button>
+    <button class="item dim" data-act="close">닫기</button>`);
+}
+
+/* ---------- limit 10 lines / 300 chars ---------- */
+function clampText(t){ let l = t.split('\n'); if (l.length > MAX_LINES) l = l.slice(0, MAX_LINES); return l.join('\n').slice(0, MAX_CHARS); }
+function bindLimit(ta, cnt){
+  const upd = () => { const v = clampText(ta.value); if (v !== ta.value) ta.value = v;
+    cnt.textContent = `${v ? v.split('\n').length : 0} / ${MAX_LINES}줄`; };
+  ta.addEventListener('input', upd); upd();
+}
+
+/* ---------- adding photos (saved first, comments after) ---------- */
+function loadImg(url){ return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; }); }
+async function shrink(file){
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImg(url);
+    const s = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth*s); c.height = Math.round(img.naturalHeight*s);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return await new Promise(r => c.toBlob(b => r(URL.createObjectURL(b)), 'image/jpeg', .82));
+  } finally { URL.revokeObjectURL(url); }
+}
+async function onFiles(input, fromCam){
+  const files = [...input.files]; input.value = ''; closeLayer();
+  if (!files.length) return;
+  const e = entries[addKey] || (entries[addKey] = { photos: [], coverId: null });
+  const left = MAX - e.photos.length, take = files.slice(0, left);
+  if (files.length > left) toast(`${files.length - left}장은 하루 5장 제한으로 빠졌어요.`);
+  const added = [];
+  for (const f of take){
+    try {
+      const src = await shrink(f);
+      const p = { id: 'p'+(++uid), src, comment: '', time: fromCam ? Date.now() : (f.lastModified || Date.now()) };
+      e.photos.push(p); added.push(p.id);
+    } catch { toast('이 사진은 열 수 없어요.'); }
+  }
+  if (added.length) openCompose(addKey, added);
+}
+$('inCam').addEventListener('change', () => onFiles($('inCam'), true));
+$('inGal').addEventListener('change', () => onFiles($('inGal'), false));
+
+function openCompose(k, ids){
+  const d = parse(k);
+  const list = ids.map(id => { const {p} = findPhoto(id); return `
+    <div><img src="${p.src}" alt="">
+      <textarea id="c_${id}" rows="3" placeholder="이 순간을 짧게 남겨요. 비워도 괜찮아요."></textarea>
+      <div class="counter" id="n_${id}"></div></div>`; }).join('');
+  $('compose').innerHTML = `
+    <div class="day-head"><button data-act="comp-later">나중에 쓰기</button><span class="lbl">사진은 이미 저장됐어요</span></div>
+    <div class="day-title" style="margin-bottom:0"><div class="lbl">${WD_EN[d.getDay()]} · ${d.getFullYear()}</div><h1>${d.getMonth()+1}월 ${d.getDate()}일</h1></div>
+    <div class="comp-list">${list}</div>
+    <button class="btn-ink" data-act="comp-save" data-ids="${ids.join(',')}">저장</button>`;
+  ids.forEach(id => bindLimit($('c_'+id), $('n_'+id)));
+  dayKey = k; show('compose'); $('compose').scrollTop = 0;
+}
+
+/* ---------- confirm ---------- */
+function confirmDelete(id){
+  sheet(`<h2>사진 삭제</h2><p>이 사진과 멘트를 지울까요? 지우면 되돌릴 수 없어요.</p>
+    <div class="row2"><button data-act="close">취소</button><button class="pri" data-act="m-del-yes" data-id="${id}">삭제</button></div>`);
+}
+
+/* ---------- clicks ---------- */
+const lp = { t: null, fired: false, x: 0, y: 0, el: null };
+document.addEventListener('click', ev => {
+  const shot = ev.target.closest('.shot');
+  const a = ev.target.closest('[data-act]');
+  if (shot && lp.fired){ lp.fired = false; ev.preventDefault(); return; }
+  if (shot && !a){ const {p} = findPhoto(shot.dataset.id);
+    $('layer').innerHTML = `<div class="viewer" data-act="close"><img src="${p.src}" alt=""></div>`; return; }
+  if (!a) return;
+  const act = a.dataset.act, id = a.dataset.id;
+  switch (act){
+    case 'close': closeLayer(); break;
+    case 'add-today': openAdd(TODAY); break;
+    case 'add-here': openAdd(dayKey); break;
+    case 'pick-cam': $('inCam').click(); break;
+    case 'pick-gal': $('inGal').click(); break;
+    case 'open-day': openDay(a.dataset.k); break;
+    case 'to-cal': calY = parse(dayKey).getFullYear(); calM = parse(dayKey).getMonth(); renderCal(); show('cal'); break;
+    case 'to-main': renderMain(); show('main'); break;
+    case 'prev-m': moveMonth(-1); break;
+    case 'next-m': moveMonth(1); break;
+    case 'prev-d': moveDay(-1); break;
+    case 'next-d': moveDay(1); break;
+    case 'settings': openSettings(); break;
+    case 'backup': lastBackup = `${now.getMonth()+1}월 ${now.getDate()}일`; closeLayer(); renderCal();
+      toast('실제 앱에서는 여기서 공유 창이 열리고 파일 앱에 저장해요.'); break;
+    case 'restore': closeLayer(); toast('실제 앱에서는 파일 앱에서 백업 파일을 골라요.'); break;
+    case 'edit': openEditor(id); break;
+    case 'ed-save': { const f = findPhoto(id); f.p.comment = clampText($('edTxt').value.trim()); closeLayer(); renderDay(); break; }
+    case 'comp-save': a.dataset.ids.split(',').forEach(i => { const f = findPhoto(i); if (f) f.p.comment = clampText($('c_'+i).value.trim()); });
+      openDay(dayKey); toast('저장했어요.'); break;
+    case 'comp-later': openDay(dayKey); toast('사진만 저장했어요. 멘트는 눌러서 언제든 달 수 있어요.'); break;
+    case 'm-cover': { const f = findPhoto(id); entries[f.k].coverId = id; closeLayer(); renderDay(); toast('대표사진으로 지정했어요.'); break; }
+    case 'm-save': closeLayer(); toast('실제 앱에서는 공유 창의 "이미지 저장"으로 사진 앱에 남겨요.'); break;
+    case 'm-up': case 'm-down': { const f = findPhoto(id), ps = entries[f.k].photos, i = ps.indexOf(f.p), j = act==='m-up'? i-1 : i+1;
+      [ps[i], ps[j]] = [ps[j], ps[i]]; closeLayer(); renderDay(); break; }
+    case 'm-del': confirmDelete(id); break;
+    case 'm-del-yes': { const f = findPhoto(id), e = entries[f.k]; e.photos.splice(e.photos.indexOf(f.p), 1);
+      if (e.coverId === id) e.coverId = null; if (!e.photos.length) delete entries[f.k]; closeLayer(); renderDay(); toast('지웠어요.'); break; }
+  }
+});
+
+/* ---------- long press on a photo ---------- */
+document.addEventListener('pointerdown', e => {
+  const s = e.target.closest('.shot'); if (!s) return;
+  lp.fired = false; lp.x = e.clientX; lp.y = e.clientY; lp.el = s; clearTimeout(lp.t);
+  lp.t = setTimeout(() => { lp.fired = true; s.classList.add('pressed'); openMenu(s.dataset.id);
+    setTimeout(() => s.classList.remove('pressed'), 200); }, 480);
+});
+document.addEventListener('pointermove', e => { if (lp.t && Math.hypot(e.clientX-lp.x, e.clientY-lp.y) > 10) clearTimeout(lp.t); });
+['pointerup','pointercancel'].forEach(t => document.addEventListener(t, () => clearTimeout(lp.t)));
+document.addEventListener('contextmenu', e => { if (e.target.closest('.shot')) e.preventDefault(); });
+
+/* ---------- swipes ---------- */
+function swipe(el, onLeft, onRight){
+  let x0 = null, y0 = 0;
+  el.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, {passive:true});
+  el.addEventListener('touchend', e => {
+    if (x0 === null || $('layer').innerHTML) return;
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5){ clearTimeout(lp.t); dx < 0 ? onLeft() : onRight(); }
+  });
+}
+swipe($('cal'), () => moveMonth(1), () => moveMonth(-1));
+swipe($('day'), () => moveDay(1), () => moveDay(-1));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLayer(); });
+
+renderMain();
+})();
+</script>
