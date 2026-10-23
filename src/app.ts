@@ -1,5 +1,6 @@
 import { addDays, formatTime, oneYearAgo, parseDayKey, toDayKey, todayKey, type DayKey } from './core/date';
 import { countRecordedDays, effectiveCoverId, needsBackupNudge } from './core/diary';
+import { BackupError, buildBackup, readBackup, restoreBackup } from './backup/backup';
 import { MAX_PHOTOS_PER_DAY } from './config';
 import { readTakenAt, shrinkImage } from './media/image';
 import { shareFile } from './media/share';
@@ -7,10 +8,11 @@ import type { DiaryStore, NewPhoto } from './storage/db';
 import { onLongPress, onSwipe } from './ui/gestures';
 import { closeSheet, confirmSheet, editorSheet, openSheet } from './ui/sheet';
 import { toast } from './ui/toast';
-import { forgetUrl, photoUrl } from './ui/urls';
+import { forgetAllUrls, forgetUrl, photoUrl } from './ui/urls';
 import { openViewer } from './ui/viewer';
 import { readCompose, renderCompose } from './views/compose';
 import { renderDay, type DayPhotoView } from './views/day';
+import { SETTINGS_NOTE, settingsInfo } from './views/settings';
 import { renderCalendar } from './views/calendar';
 import { renderCover } from './views/cover';
 
@@ -25,6 +27,7 @@ export class App {
   addKey: DayKey = '';
   readonly camInput: HTMLInputElement;
   readonly galInput: HTMLInputElement;
+  readonly restoreInput: HTMLInputElement;
 
   constructor(readonly root: HTMLElement, readonly store: DiaryStore, readonly now: () => Date = () => new Date()) {
     for (const name of ['cover', 'cal', 'day', 'compose'] as ViewName[]) {
@@ -41,6 +44,16 @@ export class App {
     onLongPress(this.views.day, '.shot', (el) => this.photoMenu(el.dataset.id!));
     this.camInput = this.fileInput(true);
     this.galInput = this.fileInput(false);
+    this.restoreInput = document.createElement('input');
+    this.restoreInput.type = 'file';
+    this.restoreInput.accept = '.zip,application/zip';
+    this.restoreInput.hidden = true;
+    this.restoreInput.addEventListener('change', () => {
+      const f = this.restoreInput.files?.[0];
+      this.restoreInput.value = '';
+      if (f) this.restoreFrom(f);
+    });
+    root.appendChild(this.restoreInput);
   }
 
   private fileInput(camera: boolean): HTMLInputElement {
@@ -164,6 +177,8 @@ export class App {
     if (!p || !day) return;
     const i = day.photoIds.indexOf(id);
     const isCover = effectiveCoverId(day) === id;
+    const blob = await this.store.getPhotoBlob(id);
+    let sharing: Promise<unknown> | null = null;
     const choice = await openSheet({
       title: '사진',
       items: [
@@ -174,22 +189,23 @@ export class App {
         { label: '삭제', value: 'delete', danger: true },
       ],
       cancelLabel: '닫기',
+      // 공유 창은 누른 순간에 열어야 iOS가 막지 않는다.
+      onPick: (v) => {
+        if (v === 'save' && blob) sharing = shareFile(new File([blob], `${day.key}-${i + 1}.jpg`, { type: 'image/jpeg' }));
+      },
     });
     switch (choice) {
       case 'cover':
         await this.store.setCover(day.key, id);
         toast('대표사진으로 지정했어요.');
         break;
-      case 'save': {
-        const blob = await this.store.getPhotoBlob(id);
-        if (!blob) return;
+      case 'save':
         try {
-          await shareFile(new File([blob], `${day.key}-${i + 1}.jpg`, { type: 'image/jpeg' }));
+          await sharing;
         } catch {
           toast('저장하지 못했어요. 다시 시도해 주세요.');
         }
         return;
-      }
       case 'up':
       case 'down':
         await this.store.movePhoto(day.key, id, choice === 'up' ? -1 : 1);
@@ -204,6 +220,66 @@ export class App {
         return;
     }
     await this.showDay(day.key);
+  }
+
+  async openSettings(): Promise<void> {
+    const info = settingsInfo(await this.store.allDayKeys(), await this.store.getMeta());
+    const choice = await openSheet({
+      title: '설정',
+      body: `마지막 백업: ${info.lastBackup}\n${SETTINGS_NOTE}`,
+      items: [
+        ...info.years.map((y) => ({ label: `${y}년 백업하기`, value: String(y) })),
+        { label: '백업 불러오기', value: 'restore' },
+      ],
+      cancelLabel: '닫기',
+      onPick: (v) => {
+        if (v === 'restore') this.restoreInput.click();
+      },
+    });
+    if (choice && choice !== 'restore') await this.backupYear(Number(choice));
+  }
+
+  private async backupYear(year: number): Promise<void> {
+    toast('백업 파일을 만드는 중…');
+    let file: File;
+    try {
+      file = await buildBackup(this.store, year);
+    } catch {
+      return toast('백업 파일을 만들지 못했어요. 다시 시도해 주세요.');
+    }
+    let sharing: Promise<'shared' | 'cancelled' | 'downloaded'> | null = null;
+    const mb = (file.size / 1048576).toFixed(1);
+    await openSheet({
+      title: '백업 파일이 준비됐어요',
+      body: `${file.name} · ${mb}MB\n공유 창에서 '파일에 저장'을 골라 iCloud Drive에 보관하세요.`,
+      items: [{ label: '파일로 저장하기', value: 'share' }],
+      onPick: () => {
+        sharing = shareFile(file);
+      },
+    });
+    if (!sharing) return;
+    try {
+      if ((await sharing) === 'cancelled') return;
+    } catch {
+      return toast('저장하지 못했어요. 다시 시도해 주세요.');
+    }
+    await this.store.markBackedUp(year);
+    toast('백업했어요.');
+    if (!this.views.cal.hidden) await this.showCalendar(this.calY, this.calM);
+  }
+
+  private async restoreFrom(file: File): Promise<void> {
+    let data;
+    try {
+      data = await readBackup(file);
+    } catch (e) {
+      return toast(e instanceof BackupError ? e.message : '불러오지 못했어요.');
+    }
+    if (!(await confirmSheet('백업 불러오기', `${data.year}년 기록을 이 백업 내용으로 바꿔요.`, '불러오기'))) return;
+    await restoreBackup(this.store, data);
+    forgetAllUrls();
+    toast('불러왔어요.');
+    await this.showCalendar(this.calY || this.now().getFullYear(), this.calY ? this.calM : this.now().getMonth());
   }
 
   private async editComment(id: string): Promise<void> {
@@ -294,6 +370,8 @@ export class App {
         return this.editComment(el.dataset.id!);
       case 'add-here':
         return this.startAdd(this.dayKey);
+      case 'settings':
+        return this.openSettings();
       case 'comp-save': {
         for (const [id, text] of Object.entries(readCompose(this.views.compose))) {
           if (text) await this.store.updateComment(id, text);

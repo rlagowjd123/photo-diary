@@ -36,6 +36,8 @@ function mount<T>(html: string, cancelValue: T, wire: (sheet: HTMLElement, done:
 
 export function openSheet(o: {
   title: string;
+  /** 제목 아래 안내 문구 (줄바꿈 가능) */
+  body?: string;
   items: { label: string; value: string; danger?: boolean; disabled?: boolean }[];
   cancelLabel?: string;
   /** 누른 순간 같은 이벤트 안에서 실행 (iOS에서 파일 선택 창을 열려면 필요). */
@@ -44,7 +46,8 @@ export function openSheet(o: {
   const items = o.items
     .map((it) => `<button class="item${it.danger ? ' danger' : ''}" data-value="${esc(it.value)}"${it.disabled ? ' disabled' : ''}>${esc(it.label)}</button>`)
     .join('');
-  const html = `<h2>${esc(o.title)}</h2>${items}<button class="item dim" data-cancel>${esc(o.cancelLabel ?? '취소')}</button>`;
+  const body = o.body ? `<p>${o.body.split('\n').map(esc).join('<br>')}</p>` : '';
+  const html = `<h2>${esc(o.title)}</h2>${body}${items}<button class="item dim" data-cancel>${esc(o.cancelLabel ?? '취소')}</button>`;
   return mount<string | null>(html, null, (sheet, done) => {
     sheet.querySelectorAll<HTMLElement>('[data-value]').forEach((b) => b.addEventListener('click', () => {
       o.onPick?.(b.dataset.value!);
