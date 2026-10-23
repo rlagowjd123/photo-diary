@@ -8,3 +8,4 @@ export const MAX_EDGE = 1600;
 export const JPEG_QUALITY = 0.82;
 export const BACKUP_NUDGE_DAYS = 14;
 export const LONG_PRESS_MS = 480;
+export const THUMB_EDGE = 400;

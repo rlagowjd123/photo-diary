@@ -22,3 +22,9 @@ test('drawFlattened paints white before the photo so transparency is not black i
   drawFlattened(ctx, {} as CanvasImageSource, 10, 10);
   expect(calls).toEqual(['fill:#ffffff', 'fillRect', 'drawImage']);
 });
+
+test('thumbnail size is 400px on the long edge', async () => {
+  const { THUMB_EDGE } = await import('../../src/config');
+  expect(THUMB_EDGE).toBe(400);
+  expect(fitWithin(1600, 1200, THUMB_EDGE)).toEqual({ width: 400, height: 300 });
+});

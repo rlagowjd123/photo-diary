@@ -8,7 +8,7 @@ import type { DiaryStore, NewPhoto } from './storage/db';
 import { onLongPress, onSwipe } from './ui/gestures';
 import { closeSheet, confirmSheet, editorSheet, openSheet } from './ui/sheet';
 import { toast } from './ui/toast';
-import { forgetAllUrls, forgetUrl, photoUrl } from './ui/urls';
+import { forgetAllUrls, forgetUrl, photoUrl, thumbUrl } from './ui/urls';
 import { openViewer } from './ui/viewer';
 import { readCompose, renderCompose } from './views/compose';
 import { renderDay, type DayPhotoView } from './views/day';
@@ -129,7 +129,7 @@ export class App {
     const covers: Record<DayKey, string> = {};
     for (const d of await this.store.getDaysBetween(from, to)) {
       const id = effectiveCoverId(d);
-      if (id) covers[d.key] = await photoUrl(this.store, id);
+      if (id) covers[d.key] = await thumbUrl(this.store, id);
     }
     const n = this.now();
     const meta = await this.store.getMeta();
@@ -179,7 +179,7 @@ export class App {
     const photos = await Promise.all(day.photoIds.map((id) => this.store.getPhoto(id)));
     const cover = photos.find((p) => p?.id === coverId);
     const text = cover?.comment || photos.find((p) => p?.comment)?.comment || `사진 ${day.photoIds.length}장`;
-    return { key: k, url: await photoUrl(this.store, coverId), text };
+    return { key: k, url: await thumbUrl(this.store, coverId), text };
   }
 
   async moveDay(step: -1 | 1): Promise<void> {
@@ -338,9 +338,9 @@ export class App {
     const items: NewPhoto[] = [];
     for (const f of take) {
       try {
-        const { blob, width, height } = await shrinkImage(f);
+        const { blob, thumb, width, height } = await shrinkImage(f);
         const takenAt = fromCamera ? Date.now() : await readTakenAt(f, f.lastModified || Date.now());
-        items.push({ blob, width, height, takenAt });
+        items.push({ blob, thumb, width, height, takenAt });
       } catch {
         unreadable++;
       }

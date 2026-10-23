@@ -6,8 +6,8 @@ import {
   type BackupMeta, type Day, type Photo,
 } from '../core/diary';
 
-export interface NewPhoto { blob: Blob; takenAt: number; width: number; height: number }
-export type PhotoWithBlob = Photo & { blob: Blob };
+export interface NewPhoto { blob: Blob; thumb?: Blob; takenAt: number; width: number; height: number }
+export type PhotoWithBlob = Photo & { blob: Blob; thumb?: Blob };
 
 interface Schema extends DBSchema {
   days: { key: string; value: Day };
@@ -24,6 +24,8 @@ export interface DiaryStore {
   allDayKeys(): Promise<DayKey[]>;
   getPhoto(id: string): Promise<Photo | undefined>;
   getPhotoBlob(id: string): Promise<Blob | undefined>;
+  /** 달력용 작은 사진. 없으면(복원된 사진 등) 원래 사진. */
+  getThumbBlob(id: string): Promise<Blob | undefined>;
   addPhotos(key: DayKey, items: NewPhoto[], now?: number): Promise<{ accepted: Photo[]; rejected: number }>;
   updateComment(id: string, text: string): Promise<void>;
   setCover(key: DayKey, id: string): Promise<void>;
@@ -38,7 +40,7 @@ export interface DiaryStore {
 const META_KEY = 'backup';
 const yearOf = (k: DayKey) => Number(k.slice(0, 4));
 const yearRange = (year: number) => IDBKeyRange.bound(`${year}-01-01`, `${year}-12-31`);
-const stripBlob = ({ blob: _b, ...rest }: PhotoWithBlob): Photo => rest;
+const stripBlob = ({ blob: _b, thumb: _t, ...rest }: PhotoWithBlob): Photo => rest;
 
 async function touch(tx: RW, key: DayKey, now: number) {
   const meta = (await tx.objectStore('meta').get(META_KEY)) ?? emptyMeta();
@@ -83,6 +85,10 @@ export async function openStore(dbName = 'photo-diary'): Promise<DiaryStore> {
     async getPhotoBlob(id) {
       return (await db.get('photos', id))?.blob;
     },
+    async getThumbBlob(id) {
+      const p = await db.get('photos', id);
+      return p?.thumb ?? p?.blob;
+    },
 
     async addPhotos(key, items, now = Date.now()) {
       const tx = rw();
@@ -94,6 +100,7 @@ export async function openStore(dbName = 'photo-diary'): Promise<DiaryStore> {
         if (!accepted.includes(id)) continue;
         const it = items[i];
         const rec: PhotoWithBlob = { id, dayKey: key, comment: '', takenAt: it.takenAt, width: it.width, height: it.height, blob: it.blob };
+        if (it.thumb) rec.thumb = it.thumb;
         await tx.objectStore('photos').put(rec);
         photos.push(stripBlob(rec));
       }

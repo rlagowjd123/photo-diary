@@ -74,3 +74,13 @@ test('changes mark meta pending; markBackedUp clears it', async () => {
   expect(m.pendingSince['2026']).toBeUndefined();
   expect(m.lastBackupAt['2026']).toBe(5000);
 });
+
+test('thumbnail is stored and served; falls back to full photo when missing', async () => {
+  const s = await fresh();
+  const withThumb = { ...p(), thumb: new Blob(['small']) };
+  const { accepted: [a, b] } = await s.addPhotos('2026-10-07', [withThumb, p()]);
+  expect(await (await s.getThumbBlob(a.id))!.text()).toBe('small');
+  expect(await (await s.getThumbBlob(b.id))!.text()).toBe('x');
+  expect(await s.getThumbBlob('nope')).toBeUndefined();
+  expect(await s.getPhoto(a.id)).not.toHaveProperty('thumb');
+});

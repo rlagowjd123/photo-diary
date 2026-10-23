@@ -40,3 +40,19 @@ test('foreign or broken files are rejected and nothing changes', async () => {
   await expect(readBackup(missing)).rejects.toBeInstanceOf(BackupError);
   expect(await s.allDayKeys()).toEqual(['2026-10-07']);
 });
+
+test('thumbnails survive a backup round-trip', async () => {
+  const a = await fresh();
+  const { accepted: [p] } = await a.addPhotos('2026-10-07', [{ blob: new Blob(['big']), thumb: new Blob(['small']), takenAt: 0, width: 1, height: 1 }]);
+  const b = await fresh();
+  await restoreBackup(b, await readBackup(await buildBackup(a, 2026)));
+  expect(await (await b.getThumbBlob(p.id))!.text()).toBe('small');
+  expect(await (await b.getPhotoBlob(p.id))!.text()).toBe('big');
+});
+
+test('null or malformed diary.json gives the backup error message', async () => {
+  for (const body of ['null', '{"app":"photo-diary","version":1,"year":2026,"days":[],"photos":[null]}']) {
+    const f = new Blob([zipSync({ 'diary.json': strToU8(body) })]);
+    await expect(readBackup(f)).rejects.toThrow('이 파일은 사진 일기 백업이 아니에요.');
+  }
+});

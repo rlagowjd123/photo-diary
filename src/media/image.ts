@@ -1,5 +1,5 @@
 import exifr from 'exifr';
-import { JPEG_QUALITY, MAX_EDGE } from '../config';
+import { JPEG_QUALITY, MAX_EDGE, THUMB_EDGE } from '../config';
 
 export class ImageError extends Error {}
 
@@ -36,20 +36,28 @@ export function drawFlattened(ctx: CanvasRenderingContext2D, el: CanvasImageSour
   ctx.drawImage(el, 0, 0, w, h);
 }
 
-/** 긴 변 1600px, JPEG 0.82로 줄인다. */
-export async function shrinkImage(file: Blob): Promise<{ blob: Blob; width: number; height: number }> {
+async function render(el: CanvasImageSource, width: number, height: number): Promise<Blob> {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new ImageError('이 사진은 열 수 없어요.');
+  drawFlattened(ctx, el, width, height);
+  const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', JPEG_QUALITY));
+  canvas.width = canvas.height = 0; // iOS가 캔버스 메모리를 바로 돌려받게
+  if (!blob) throw new ImageError('이 사진은 열 수 없어요.');
+  return blob;
+}
+
+/** 긴 변 1600px 사진과 400px 작은 사진(달력용)을 JPEG 0.82로 만든다. */
+export async function shrinkImage(file: Blob): Promise<{ blob: Blob; thumb: Blob; width: number; height: number }> {
   const src = await decode(file);
   try {
     const { width, height } = fitWithin(src.w, src.h, MAX_EDGE);
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new ImageError('이 사진은 열 수 없어요.');
-    drawFlattened(ctx, src.el, width, height);
-    const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', JPEG_QUALITY));
-    if (!blob) throw new ImageError('이 사진은 열 수 없어요.');
-    return { blob, width, height };
+    const t = fitWithin(src.w, src.h, THUMB_EDGE);
+    const blob = await render(src.el, width, height);
+    const thumb = await render(src.el, t.width, t.height);
+    return { blob, thumb, width, height };
   } finally {
     src.close();
   }
