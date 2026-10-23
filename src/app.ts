@@ -1,9 +1,13 @@
-import { toDayKey, todayKey, type DayKey } from './core/date';
+import { addDays, formatTime, oneYearAgo, parseDayKey, toDayKey, todayKey, type DayKey } from './core/date';
 import { countRecordedDays, effectiveCoverId, needsBackupNudge } from './core/diary';
+import { shareFile } from './media/share';
 import type { DiaryStore } from './storage/db';
-import { onSwipe } from './ui/gestures';
-import { closeSheet } from './ui/sheet';
-import { photoUrl } from './ui/urls';
+import { onLongPress, onSwipe } from './ui/gestures';
+import { closeSheet, confirmSheet, editorSheet, openSheet } from './ui/sheet';
+import { toast } from './ui/toast';
+import { forgetUrl, photoUrl } from './ui/urls';
+import { openViewer } from './ui/viewer';
+import { renderDay, type DayPhotoView } from './views/day';
 import { renderCalendar } from './views/calendar';
 import { renderCover } from './views/cover';
 
@@ -27,6 +31,8 @@ export class App {
     }
     root.addEventListener('click', (e) => this.onClick(e));
     onSwipe(this.views.cal, { left: () => this.moveMonth(1), right: () => this.moveMonth(-1) });
+    onSwipe(this.views.day, { left: () => this.moveDay(1), right: () => this.moveDay(-1) });
+    onLongPress(this.views.day, '.shot', (el) => this.photoMenu(el.dataset.id!));
   }
 
   get today(): DayKey {
@@ -91,9 +97,96 @@ export class App {
     await this.showCalendar(t.getFullYear(), t.getMonth(), step > 0 ? 'slide-l' : 'slide-r');
   }
 
-  async showDay(key: DayKey, _dir?: Dir): Promise<void> {
+  async showDay(key: DayKey, dir?: Dir): Promise<void> {
+    const keepScroll = !dir && key === this.dayKey && !this.views.day.hidden;
+    const scroll = this.views.day.scrollTop;
     this.dayKey = key;
+    const day = await this.store.getDay(key);
+    const coverId = day ? effectiveCoverId(day) : null;
+    const photos: DayPhotoView[] = [];
+    for (const id of day?.photoIds ?? []) {
+      const p = await this.store.getPhoto(id);
+      if (!p) continue;
+      photos.push({ id, url: await photoUrl(this.store, id), comment: p.comment, time: formatTime(p.takenAt), isCover: id === coverId });
+    }
+    renderDay(this.views.day, { key, today: this.today, photos, yearAgo: await this.yearAgo(key), dir });
     this.show('day');
+    this.views.day.scrollTop = keepScroll ? scroll : 0;
+  }
+
+  /** 작년 같은 날 기록: 대표사진 멘트 → 첫 멘트 → `사진 N장`. */
+  private async yearAgo(key: DayKey) {
+    const k = oneYearAgo(key);
+    const day = await this.store.getDay(k);
+    const coverId = day && effectiveCoverId(day);
+    if (!day || !coverId) return null;
+    const photos = await Promise.all(day.photoIds.map((id) => this.store.getPhoto(id)));
+    const cover = photos.find((p) => p?.id === coverId);
+    const text = cover?.comment || photos.find((p) => p?.comment)?.comment || `사진 ${day.photoIds.length}장`;
+    return { key: k, url: await photoUrl(this.store, coverId), text };
+  }
+
+  async moveDay(step: -1 | 1): Promise<void> {
+    const k = addDays(this.dayKey, step);
+    if (k > this.today) return;
+    await this.showDay(k, step > 0 ? 'slide-l' : 'slide-r');
+  }
+
+  private async photoMenu(id: string): Promise<void> {
+    const p = await this.store.getPhoto(id);
+    const day = p && (await this.store.getDay(p.dayKey));
+    if (!p || !day) return;
+    const i = day.photoIds.indexOf(id);
+    const isCover = effectiveCoverId(day) === id;
+    const choice = await openSheet({
+      title: '사진',
+      items: [
+        { label: isCover ? '지금 대표사진이에요' : '대표사진으로 지정', value: 'cover', disabled: isCover },
+        { label: '사진 앱에 저장', value: 'save' },
+        { label: '위로 이동', value: 'up', disabled: i === 0 },
+        { label: '아래로 이동', value: 'down', disabled: i === day.photoIds.length - 1 },
+        { label: '삭제', value: 'delete', danger: true },
+      ],
+      cancelLabel: '닫기',
+    });
+    switch (choice) {
+      case 'cover':
+        await this.store.setCover(day.key, id);
+        toast('대표사진으로 지정했어요.');
+        break;
+      case 'save': {
+        const blob = await this.store.getPhotoBlob(id);
+        if (!blob) return;
+        try {
+          await shareFile(new File([blob], `${day.key}-${i + 1}.jpg`, { type: 'image/jpeg' }));
+        } catch {
+          toast('저장하지 못했어요. 다시 시도해 주세요.');
+        }
+        return;
+      }
+      case 'up':
+      case 'down':
+        await this.store.movePhoto(day.key, id, choice === 'up' ? -1 : 1);
+        break;
+      case 'delete':
+        if (!(await confirmSheet('사진 삭제', '이 사진과 멘트를 지울까요? 지우면 되돌릴 수 없어요.', '삭제'))) return;
+        await this.store.deletePhoto(id);
+        forgetUrl(id);
+        toast('지웠어요.');
+        break;
+      default:
+        return;
+    }
+    await this.showDay(day.key);
+  }
+
+  private async editComment(id: string): Promise<void> {
+    const p = await this.store.getPhoto(id);
+    if (!p) return;
+    const text = await editorSheet(p.comment);
+    if (text === null) return;
+    await this.store.updateComment(id, text);
+    await this.showDay(this.dayKey);
   }
 
   async startAdd(_key: DayKey): Promise<void> {}
@@ -102,7 +195,9 @@ export class App {
     const t = e.target as HTMLElement;
     const a = t.closest<HTMLElement>('[data-act]');
     if (!a) {
-      if (t.closest('#cover')) await this.turnToCalendar();
+      const shot = t.closest<HTMLElement>('.shot');
+      if (shot) openViewer(await photoUrl(this.store, shot.dataset.id!));
+      else if (t.closest('#cover')) await this.turnToCalendar();
       return;
     }
     await this.act(a.dataset.act!, a);
@@ -116,6 +211,18 @@ export class App {
         return this.moveMonth(-1);
       case 'next-m':
         return this.moveMonth(1);
+      case 'to-cal': {
+        const d = parseDayKey(this.dayKey);
+        return this.showCalendar(d.getFullYear(), d.getMonth());
+      }
+      case 'prev-d':
+        return this.moveDay(-1);
+      case 'next-d':
+        return this.moveDay(1);
+      case 'edit':
+        return this.editComment(el.dataset.id!);
+      case 'add-here':
+        return this.startAdd(this.dayKey);
       case 'add-today':
         return this.startAdd(this.today);
       case 'to-cover':
