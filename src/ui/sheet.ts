@@ -38,13 +38,18 @@ export function openSheet(o: {
   title: string;
   items: { label: string; value: string; danger?: boolean; disabled?: boolean }[];
   cancelLabel?: string;
+  /** 누른 순간 같은 이벤트 안에서 실행 (iOS에서 파일 선택 창을 열려면 필요). */
+  onPick?: (value: string) => void;
 }): Promise<string | null> {
   const items = o.items
     .map((it) => `<button class="item${it.danger ? ' danger' : ''}" data-value="${esc(it.value)}"${it.disabled ? ' disabled' : ''}>${esc(it.label)}</button>`)
     .join('');
   const html = `<h2>${esc(o.title)}</h2>${items}<button class="item dim" data-cancel>${esc(o.cancelLabel ?? '취소')}</button>`;
   return mount<string | null>(html, null, (sheet, done) => {
-    sheet.querySelectorAll<HTMLElement>('[data-value]').forEach((b) => b.addEventListener('click', () => done(b.dataset.value!)));
+    sheet.querySelectorAll<HTMLElement>('[data-value]').forEach((b) => b.addEventListener('click', () => {
+      o.onPick?.(b.dataset.value!);
+      done(b.dataset.value!);
+    }));
   });
 }
 

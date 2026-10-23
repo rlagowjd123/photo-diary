@@ -1,12 +1,15 @@
 import { addDays, formatTime, oneYearAgo, parseDayKey, toDayKey, todayKey, type DayKey } from './core/date';
 import { countRecordedDays, effectiveCoverId, needsBackupNudge } from './core/diary';
+import { MAX_PHOTOS_PER_DAY } from './config';
+import { readTakenAt, shrinkImage } from './media/image';
 import { shareFile } from './media/share';
-import type { DiaryStore } from './storage/db';
+import type { DiaryStore, NewPhoto } from './storage/db';
 import { onLongPress, onSwipe } from './ui/gestures';
 import { closeSheet, confirmSheet, editorSheet, openSheet } from './ui/sheet';
 import { toast } from './ui/toast';
 import { forgetUrl, photoUrl } from './ui/urls';
 import { openViewer } from './ui/viewer';
+import { readCompose, renderCompose } from './views/compose';
 import { renderDay, type DayPhotoView } from './views/day';
 import { renderCalendar } from './views/calendar';
 import { renderCover } from './views/cover';
@@ -19,6 +22,9 @@ export class App {
   calY = 0;
   calM = 0;
   dayKey: DayKey = '';
+  addKey: DayKey = '';
+  readonly camInput: HTMLInputElement;
+  readonly galInput: HTMLInputElement;
 
   constructor(readonly root: HTMLElement, readonly store: DiaryStore, readonly now: () => Date = () => new Date()) {
     for (const name of ['cover', 'cal', 'day', 'compose'] as ViewName[]) {
@@ -33,6 +39,26 @@ export class App {
     onSwipe(this.views.cal, { left: () => this.moveMonth(1), right: () => this.moveMonth(-1) });
     onSwipe(this.views.day, { left: () => this.moveDay(1), right: () => this.moveDay(-1) });
     onLongPress(this.views.day, '.shot', (el) => this.photoMenu(el.dataset.id!));
+    this.camInput = this.fileInput(true);
+    this.galInput = this.fileInput(false);
+  }
+
+  private fileInput(camera: boolean): HTMLInputElement {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.hidden = true;
+    if (camera) input.setAttribute('capture', 'environment');
+    else input.multiple = true;
+    input.addEventListener('change', async () => {
+      const files = [...(input.files ?? [])];
+      input.value = '';
+      if (!files.length) return;
+      const ids = await this.addFiles(this.addKey, files, camera);
+      if (ids.length) await this.showCompose(this.addKey, ids);
+    });
+    this.root.appendChild(input);
+    return input;
   }
 
   get today(): DayKey {
@@ -189,7 +215,52 @@ export class App {
     await this.showDay(this.dayKey);
   }
 
-  async startAdd(_key: DayKey): Promise<void> {}
+  async startAdd(key: DayKey): Promise<void> {
+    if (key > this.today) return;
+    const left = MAX_PHOTOS_PER_DAY - ((await this.store.getDay(key))?.photoIds.length ?? 0);
+    if (left <= 0) return toast('하루에 사진은 5장까지예요.');
+    this.addKey = key;
+    const d = parseDayKey(key);
+    await openSheet({
+      title: `${d.getMonth() + 1}월 ${d.getDate()}일에 남기기 · ${left}장 더 가능`,
+      items: [
+        { label: '카메라로 찍기', value: 'cam' },
+        { label: '갤러리에서 고르기', value: 'gal' },
+      ],
+      onPick: (v) => (v === 'cam' ? this.camInput : this.galInput).click(),
+    });
+  }
+
+  /** 사진을 줄여서 바로 저장한다 (멘트보다 먼저). 저장된 사진 id를 돌려준다. */
+  async addFiles(key: DayKey, files: File[], fromCamera: boolean): Promise<string[]> {
+    const left = MAX_PHOTOS_PER_DAY - ((await this.store.getDay(key))?.photoIds.length ?? 0);
+    const take = files.slice(0, Math.max(0, left));
+    let dropped = files.length - take.length;
+    let unreadable = 0;
+    const items: NewPhoto[] = [];
+    for (const f of take) {
+      try {
+        const { blob, width, height } = await shrinkImage(f);
+        const takenAt = fromCamera ? Date.now() : await readTakenAt(f, f.lastModified || Date.now());
+        items.push({ blob, width, height, takenAt });
+      } catch {
+        unreadable++;
+      }
+    }
+    const { accepted, rejected } = items.length ? await this.store.addPhotos(key, items) : { accepted: [], rejected: 0 };
+    dropped += rejected;
+    if (dropped) toast(`${dropped}장은 하루 5장 제한으로 빠졌어요.`);
+    else if (unreadable) toast('이 사진은 열 수 없어요.');
+    return accepted.map((p) => p.id);
+  }
+
+  async showCompose(key: DayKey, ids: string[]): Promise<void> {
+    this.dayKey = key;
+    const photos = await Promise.all(ids.map(async (id) => ({ id, url: await photoUrl(this.store, id) })));
+    renderCompose(this.views.compose, { key, photos });
+    this.show('compose');
+    this.views.compose.scrollTop = 0;
+  }
 
   protected async onClick(e: MouseEvent): Promise<void> {
     const t = e.target as HTMLElement;
@@ -223,6 +294,16 @@ export class App {
         return this.editComment(el.dataset.id!);
       case 'add-here':
         return this.startAdd(this.dayKey);
+      case 'comp-save': {
+        for (const [id, text] of Object.entries(readCompose(this.views.compose))) {
+          if (text) await this.store.updateComment(id, text);
+        }
+        await this.showDay(this.dayKey);
+        return toast('저장했어요.');
+      }
+      case 'comp-later':
+        await this.showDay(this.dayKey);
+        return toast('사진만 저장했어요. 멘트는 눌러서 언제든 달 수 있어요.');
       case 'add-today':
         return this.startAdd(this.today);
       case 'to-cover':
