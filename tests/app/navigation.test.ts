@@ -30,3 +30,16 @@ test('rapid month changes: the last requested month wins', async () => {
   expect(app.calM).toBe(7);
   expect(app.views.cal.querySelector('h1')!.textContent).toBe('8월');
 });
+
+test('"나중에 쓰기" keeps text already typed', async () => {
+  const store = await openStore('t-' + crypto.randomUUID());
+  const { accepted } = await store.addPhotos('2026-10-23', [ph(), ph()]);
+  const root = document.createElement('div') as unknown as HTMLElement;
+  const app = new App(root, store, () => new Date(2026, 9, 23));
+  await app.showCompose('2026-10-23', accepted.map((p) => p.id));
+  (app.views.compose.querySelector(`#c_${accepted[0].id}`) as HTMLTextAreaElement).value = '친구 수진이와';
+  const later = app.views.compose.querySelector('[data-act="comp-later"]') as HTMLElement;
+  await app['act']('comp-later', later);
+  expect((await store.getPhoto(accepted[0].id))!.comment).toBe('친구 수진이와');
+  expect((await store.getPhoto(accepted[1].id))!.comment).toBe('');
+});

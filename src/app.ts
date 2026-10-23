@@ -398,16 +398,18 @@ export class App {
         return;
       case 'settings':
         return this.openSettings();
-      case 'comp-save': {
+      case 'comp-save':
+      case 'comp-later': {
+        // 이미 쓴 멘트는 '나중에 쓰기'를 눌러도 버리지 않는다.
+        let wrote = false;
         for (const [id, text] of Object.entries(readCompose(this.views.compose))) {
-          if (text) await this.store.updateComment(id, text);
+          if (!text) continue;
+          await this.store.updateComment(id, text);
+          wrote = true;
         }
         await this.showDay(this.dayKey);
-        return toast('저장했어요.');
+        return toast(act === 'comp-save' || wrote ? '저장했어요.' : '사진만 저장했어요. 멘트는 눌러서 언제든 달 수 있어요.');
       }
-      case 'comp-later':
-        await this.showDay(this.dayKey);
-        return toast('사진만 저장했어요. 멘트는 눌러서 언제든 달 수 있어요.');
       case 'add-today':
         return this.startAdd(this.today);
       case 'to-cover':
